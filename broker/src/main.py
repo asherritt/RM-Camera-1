@@ -2,8 +2,8 @@ from dotenv import load_dotenv
 import os
 import paho.mqtt.client as mqtt
 
-BROKER_IP = os.getenv("BROKER_IP") # Replace with your RPi's IP address
-TOPIC = "motion/garden"
+BROKER_IP = os.getenv("BROKER_IP")
+GARDEN_TOPIC = "motion/garden"
 
 def on_message(client, userdata, message):
     print(f"Message received: {message.payload.decode()}")
