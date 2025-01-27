@@ -12,8 +12,8 @@ def on_message(client, userdata, message):
 client = mqtt.Client()
 client.on_message = on_message
 
-client.connect(BROKER, 1883)
-client.subscribe(TOPIC)
+client.connect(BROKER_IP, 1883)
+client.subscribe(GARDEN_TOPIC)
 
-print(f"Subscribed to {TOPIC}. Waiting for messages...")
+print(f"Subscribed to {GARDEN_TOPIC}. Waiting for messages...")
 client.loop_forever()
