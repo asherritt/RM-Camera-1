@@ -12,6 +12,8 @@ def on_message(client, userdata, message):
 client = mqtt.Client()
 client.on_message = on_message
 
+ print(f"BROKER_IP: {BROKER_IP}")
+
 client.connect(BROKER_IP, 1883)
 client.subscribe(GARDEN_TOPIC)
 
