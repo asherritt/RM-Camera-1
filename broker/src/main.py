@@ -14,6 +14,8 @@ GARDEN_TOPIC = "motion/garden"
 LOG_FILE = os.getenv("LOG_FILEPATH")
 VIDEO_DIR = os.getenv("VIDEO_DIR")
 
+RECORD_DURATION=900
+
 # Configure logging
 logging.basicConfig(
     filename=LOG_FILE,
@@ -46,7 +48,7 @@ def on_message(client, userdata, msg):
         logging.info(f"Starting recording: {current_video_file}")
 
         # Start recording
-        picam2.start_and_record_video(current_video_file, duration=60)  # 600 seconds = 10 min
+        picam2.start_and_record_video(current_video_file, duration=RECORD_DURATION)
         
         logging.info("Recording complete.")
         is_recording = False
