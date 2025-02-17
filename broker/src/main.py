@@ -34,24 +34,30 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(GARDEN_TOPIC)
 
 def on_message(client, userdata, msg):
-    global is_recording, current_video_file
+    global is_recording
 
     logging.info(f"MQTT Message received on topic {msg.topic}: {msg.payload.decode()}")
 
-    # If not already recording, start a new recording
-    if not is_recording:
-        is_recording = True
-        timestamp = int(time.time())
-        current_video_file = os.path.join(VIDEO_DIR, f"motion_{timestamp}.h264") 
-        logging.info(f"Starting recording: {current_video_file}")
+    with recording_lock:
+        if not is_recording:
+            is_recording = True
+            timestamp = int(time.time())
 
-        # Start recording
-        picam2.start_and_record_video(current_video_file, duration=60)  # 600 seconds = 10 min
-        
-        logging.info("Recording complete.")
-        is_recording = False
-    else:
-        logging.info("Recording already in progress, ignoring new motion event.")
+            # Expand `~` and ensure the directory exists
+            video_path = os.path.expanduser(VIDEO_DIR)
+            if not os.path.exists(video_path):
+                os.makedirs(video_path, exist_ok=True)
+
+            current_video_file = os.path.join(video_path, f"motion_{timestamp}.h264")
+            logging.info(f"Starting recording: {current_video_file}")
+
+            # Start recording for 10 minutes (600 seconds)
+            picam2.start_and_record_video(current_video_file, duration=600)
+
+            logging.info("Recording complete.")
+            is_recording = False
+        else:
+            logging.info("Recording already in progress, ignoring new motion event.")
 
 # MQTT Client Setup
 mqtt_client = mqtt.Client()
