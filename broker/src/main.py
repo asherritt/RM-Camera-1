@@ -2,17 +2,25 @@ from dotenv import load_dotenv
 import os
 import time
 import logging
+import threading
 import paho.mqtt.client as mqtt
 from picamera2 import Picamera2
 
-
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
-BROKER_IP = os.getenv("BROKER_IP")
+# Configurable Parameters
+BROKER_IP = os.getenv("BROKER_IP", "192.168.1.240")  # Default if not set
+LOG_FILE = os.getenv("LOG_FILEPATH", "/home/asherritt/Desktop/RM-Camera-1/broker/mqtt_logs.log")
+VIDEO_DIR = os.getenv("VIDEO_DIR", "~/Desktop/videos/")  # Default video directory
 GARDEN_TOPIC = "motion/garden"
-LOG_FILE = os.getenv("LOG_FILEPATH")
-VIDEO_DIR = os.getenv("VIDEO_DIR")
+
+# Expand paths to absolute paths
+VIDEO_DIR = os.path.expanduser(VIDEO_DIR)
+LOG_FILE = os.path.expanduser(LOG_FILE)
+
+# Ensure directories exist
+os.makedirs(VIDEO_DIR, exist_ok=True)
 
 # Configure logging
 logging.basicConfig(
@@ -24,9 +32,9 @@ logging.basicConfig(
 # Initialize Camera
 picam2 = Picamera2()
 
-# Define recording filename
-is_recording = False  # Flag to prevent multiple recordings
-current_video_file = ""  # To track the current video file
+# Thread-safe lock to prevent multiple recordings
+recording_lock = threading.Lock()
+is_recording = False
 
 # MQTT Callback Functions
 def on_connect(client, userdata, flags, rc):
@@ -43,12 +51,10 @@ def on_message(client, userdata, msg):
             is_recording = True
             timestamp = int(time.time())
 
-            # Expand `~` and ensure the directory exists
-            video_path = os.path.expanduser(VIDEO_DIR)
-            if not os.path.exists(video_path):
-                os.makedirs(video_path, exist_ok=True)
+            # Ensure video directory exists before saving
+            os.makedirs(VIDEO_DIR, exist_ok=True)
 
-            current_video_file = os.path.join(video_path, f"motion_{timestamp}.h264")
+            current_video_file = os.path.join(VIDEO_DIR, f"motion_{timestamp}.h264")
             logging.info(f"Starting recording: {current_video_file}")
 
             # Start recording for 10 minutes (600 seconds)
@@ -60,9 +66,12 @@ def on_message(client, userdata, msg):
             logging.info("Recording already in progress, ignoring new motion event.")
 
 # MQTT Client Setup
-mqtt_client = mqtt.Client()
+mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)  # Use latest API
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
+
+# Debugging Output
+logging.info(f"Attempting to connect to MQTT Broker at {BROKER_IP}")
 
 # Connect to MQTT broker
 mqtt_client.connect(BROKER_IP, 1883, 60)
