@@ -37,7 +37,7 @@ recording_lock = threading.Lock()
 is_recording = False
 
 # MQTT Callback Functions
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, rc, properties):
     logging.info(f"Connected to MQTT broker with result code {rc}")
     client.subscribe(GARDEN_TOPIC)
 
