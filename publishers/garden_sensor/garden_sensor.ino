@@ -18,7 +18,7 @@ const char* topic = "motion/garden";
 Adafruit_VL6180X vl = Adafruit_VL6180X();
 
 // Dynamic Baseline Variables
-const uint8_t NUM_BASELINE_READINGS = 10; // Number of readings for baseline calculation
+const uint8_t NUM_BASELINE_READINGS = 5; // Number of readings for baseline calculation
 uint8_t baseline = 0;                     // Baseline value
 uint8_t readings[NUM_BASELINE_READINGS];  // Array to store initial readings
 uint8_t readingCount = 0;                 // Counter for the initial readings
@@ -26,7 +26,7 @@ bool baselineCalculated = false;          // Flag to check if baseline is ready
 
 // Thresholds
 const uint8_t baselineThreshold = 2;      // Threshold for adjusting baseline
-const uint8_t detectionThreshold = 10;    // Threshold for detecting significant decreases
+const uint8_t detectionThreshold = 3;    // Threshold for detecting significant decreases
 
 void setup() {
   Serial.begin(115200);
@@ -129,8 +129,8 @@ void reconnectMQTT() {
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      delay(5000);
+      Serial.println(" try again in 10 seconds");
+      delay(10000);
     }
   }
 }
