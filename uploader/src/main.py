@@ -8,6 +8,10 @@ from watchdog.events import FileSystemEventHandler
 # Load environment variables
 load_dotenv()
 
+os.environ["AWS_ACCESS_KEY_ID"] = os.getenv("ACCESS_KEY")
+os.environ["AWS_SECRET_ACCESS_KEY"] = os.getenv("SECRET")
+os.environ["AWS_DEFAULT_REGION"] = os.getenv("REGION")
+
 # AWS S3 Configuration
 S3_BUCKET = os.getenv("BUCKET")
 S3_FOLDER = "videos/"  # S3 folder prefix
