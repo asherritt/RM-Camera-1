@@ -19,7 +19,7 @@ RECORD_DURATION=900
 
 # Configure logging
 logging.basicConfig(
-    filename=os.path.join(os.path.expanduser(LOG_FILE)),
+    filename=LOG_FILE,
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
@@ -45,7 +45,7 @@ def on_message(client, userdata, msg):
     if not is_recording:
         is_recording = True
         timestamp = datetime.now().strftime("%m_%d_%Y_%H-%M-%S")  # Format: mm_dd_yyyy_HH-MM-SS
-        current_video_file = os.path.join(os.path.expanduser(VIDEO_DIR), f"GRD_{timestamp}.mp4")
+        current_video_file = os.path.join(VIDEO_DIR, f"GRD_{timestamp}.mp4")
         logging.info(f"Starting recording: {current_video_file}")
 
         picam2.set_controls({
