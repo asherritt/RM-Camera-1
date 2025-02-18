@@ -12,7 +12,7 @@ load_dotenv()
 
 BROKER_IP = os.getenv("BROKER_IP")
 GARDEN_TOPIC = "motion/garden"
-LOG_FILE = os.getenv("LOG_FILEPATH")
+LOG_FILE = os.getenv("LOG_FILE")
 VIDEO_DIR = os.getenv("VIDEO_DIR")
 
 RECORD_DURATION=900
