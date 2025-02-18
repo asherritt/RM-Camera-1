@@ -9,7 +9,7 @@ from watchdog.events import FileSystemEventHandler
 load_dotenv()
 
 # AWS S3 Configuration
-S3_BUCKET = "your-s3-bucket-name"
+S3_BUCKET = os.getenv("BUCKET")
 S3_FOLDER = "videos/"  # S3 folder prefix
 VIDEO_DIR = os.getenv("VIDEO_DIR")
 
