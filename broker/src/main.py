@@ -47,6 +47,12 @@ def on_message(client, userdata, msg):
         current_video_file = os.path.join(os.path.expanduser(VIDEO_DIR), f"motion_{timestamp}.h264")
         logging.info(f"Starting recording: {current_video_file}")
 
+        picam2.set_controls({
+            "FrameRate": 24.0,  # Set framerate to 24 FPS
+            "ExposureTime": 50000,  # Adjust exposure (default is ~1000-5000, try increasing it)
+            "AnalogueGain": 4.0  # Increase brightness by amplifying sensor signal
+        })
+
         # Start recording
         picam2.start_and_record_video(current_video_file, duration=RECORD_DURATION)
         
