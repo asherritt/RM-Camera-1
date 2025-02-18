@@ -78,5 +78,6 @@ def start_folder_watcher():
     observer.join()
 
 if __name__ == "__main__":
+    print(f"Starting Uploader")
     scan_and_upload_existing()  # Check for old videos on startup
     start_folder_watcher()  # Start watching for new videos
