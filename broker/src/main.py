@@ -43,15 +43,22 @@ def on_message(client, userdata, msg):
     # If not already recording, start a new recording
     if not is_recording:
         is_recording = True
-        timestamp = int(time.time())
-        current_video_file = os.path.join(os.path.expanduser(VIDEO_DIR), f"motion_{timestamp}.h264")
+        timestamp = datetime.now().strftime("%m_%d_%Y_%H-%M-%S")  # Format: mm_dd_yyyy_HH-MM-SS
+        current_video_file = os.path.join(os.path.expanduser(VIDEO_DIR), f"GRD_{timestamp}.mp4")
         logging.info(f"Starting recording: {current_video_file}")
 
         picam2.set_controls({
             "FrameRate": 24.0,  # Set framerate to 24 FPS
-            "ExposureTime": 50000,  # Adjust exposure (default is ~1000-5000, try increasing it)
-            "AnalogueGain": 4.0  # Increase brightness by amplifying sensor signal
         })
+        # Configure resolution & framerate
+        config = picam2.create_video_configuration(
+            main={"size": (2028, 1080)},
+        )
+
+        picam2.configure(config)  # Apply configuration
+
+        # Set framerate
+        picam2.set_controls({"FrameRate": 24.0})  # Set framerate to 24 FPS
 
         # Start recording
         picam2.start_and_record_video(current_video_file, duration=RECORD_DURATION)
