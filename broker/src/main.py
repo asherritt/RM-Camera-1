@@ -19,7 +19,7 @@ RECORD_DURATION=900
 
 # Configure logging
 logging.basicConfig(
-    filename=LOG_FILE,
+    filename=os.path.join(os.path.expanduser(LOG_FILE)),
     level=logging.DEBUG,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
