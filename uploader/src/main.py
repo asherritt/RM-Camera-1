@@ -8,10 +8,6 @@ from watchdog.events import FileSystemEventHandler
 # Load environment variables
 load_dotenv()
 
-# os.environ["AWS_ACCESS_KEY_ID"] = os.getenv("ACCESS_KEY")
-# os.environ["AWS_SECRET_ACCESS_KEY"] = os.getenv("SECRET")
-# os.environ["AWS_DEFAULT_REGION"] = os.getenv("REGION")
-
 # AWS S3 Configuration
 S3_BUCKET = os.getenv("BUCKET")
 S3_FOLDER = "videos/"  # S3 folder prefix
@@ -19,7 +15,8 @@ VIDEO_DIR = os.getenv("VIDEO_DIR")
 
 
 # Initialize S3 Client (Ensure AWS credentials are configured)
-s3_client = boto3.client("s3")
+session = boto3.Session(profile_name="default")  # Ensures boto3 uses the correct profile
+s3_client = session.client("s3")
 
 class VideoUploadHandler(FileSystemEventHandler):
     """Handles new files detected in the video directory."""
