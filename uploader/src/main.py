@@ -4,8 +4,11 @@ import boto3
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-VIDEO_DIR = "/home/asherritt/Desktop/videos/"
-BUCKET_NAME = "RattingtonManor"
+# Load environment variables
+load_dotenv()
+
+VIDEO_DIR = os.getenv("VIDEO_DIR")
+BUCKET_NAME = os.getenv("BUCKET")
 
 s3_client = boto3.client("s3")
 
