@@ -15,7 +15,8 @@ GARDEN_TOPIC = "motion/garden"
 LOG_FILE = os.getenv("LOG_FILE")
 VIDEO_DIR = os.getenv("VIDEO_DIR")
 
-RECORD_DURATION=os.getenv("RECORD_DURATION")
+RECORD_DURATION=int(os.getenv("RECORD_DURATION", "600"))
+
 
 # Configure logging
 logging.basicConfig(
