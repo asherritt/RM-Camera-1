@@ -1,80 +1,64 @@
-from dotenv import load_dotenv
 import os
 import time
 import boto3
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-# Load environment variables
-load_dotenv()
+VIDEO_DIR = "/home/asherritt/Desktop/videos/"
+BUCKET_NAME = "RattingtonManor"
 
-# AWS S3 Configuration
-S3_BUCKET = os.getenv("BUCKET")
-S3_FOLDER = "videos/"  # S3 folder prefix
-VIDEO_DIR = os.getenv("VIDEO_DIR")
+s3_client = boto3.client("s3")
 
+def is_file_complete(file_path):
+    """Check if the file is still being written."""
+    try:
+        with open(file_path, "rb") as f:
+            f.seek(0, os.SEEK_END)  # Move to end of file
+        return True
+    except IOError:
+        return False  # File is still being written
 
-# Initialize S3 Client (Ensure AWS credentials are configured)
-session = boto3.Session(profile_name="default")  # Ensures boto3 uses the correct profile
-s3_client = session.client("s3")
+def upload_video(file_path):
+    """Upload video to S3 and delete it locally after successful upload."""
+    if not is_file_complete(file_path):
+        print(f"⏳ Skipping {file_path}, still being written.")
+        return
 
-class VideoUploadHandler(FileSystemEventHandler):
-    """Handles new files detected in the video directory."""
-    
-    def on_created(self, event):
-        """Triggered when a new file is created in the directory."""
-        if event.is_directory:
-            return
-
-        file_path = event.src_path
-        if file_path.endswith(".mp4"):  # Only upload MP4 files
-            print(f"🎥 New video detected: {file_path}")
-            upload_and_delete(file_path)
-
-def upload_and_delete(file_path):
-    """Uploads a video to S3 and deletes it locally after success."""
     file_name = os.path.basename(file_path)
-    s3_key = os.path.join(S3_FOLDER, file_name)
+    print(f"📤 Uploading {file_name} to S3...")
 
     try:
-        print(f"📤 Uploading {file_name} to S3 bucket {S3_BUCKET}...")
-        s3_client.upload_file(file_path, S3_BUCKET, s3_key)
-        print(f"✅ Upload complete: {s3_key}")
-
-        # Delete the local file after successful upload
-        os.remove(file_path)
-        print(f"🗑️ Deleted local file: {file_path}")
-
+        s3_client.upload_file(file_path, BUCKET_NAME, file_name)
+        print(f"✅ Upload complete: {file_name}")
+        os.remove(file_path)  # Delete after successful upload
+        print(f"🗑️ Deleted local file: {file_name}")
     except Exception as e:
         print(f"❌ Upload failed for {file_name}: {e}")
 
-def scan_and_upload_existing():
-    """Scans the video directory and uploads any leftover files."""
-    print("🔍 Scanning for existing videos...")
-    for file_name in os.listdir(VIDEO_DIR):
-        file_path = os.path.join(VIDEO_DIR, file_name)
-        if file_path.endswith(".mp4"):
-            upload_and_delete(file_path)
+class VideoHandler(FileSystemEventHandler):
+    """Watch for new videos and upload when they are complete."""
+    def on_created(self, event):
+        if event.is_directory:
+            return
 
-def start_folder_watcher():
-    """Starts the watchdog observer to monitor the folder."""
+        time.sleep(5)  # Wait briefly to ensure the file is stable
+        upload_video(event.src_path)
+
+if __name__ == "__main__":
+    print("🔍 Scanning for existing videos...")
+    for file in os.listdir(VIDEO_DIR):
+        if file.endswith(".mp4"):  # Adjust for your file format
+            upload_video(os.path.join(VIDEO_DIR, file))
+
+    print(f"👀 Watching {VIDEO_DIR} for new videos...")
+    event_handler = VideoHandler()
     observer = Observer()
-    event_handler = VideoUploadHandler()
     observer.schedule(event_handler, VIDEO_DIR, recursive=False)
     observer.start()
 
-    print(f"👀 Watching {VIDEO_DIR} for new videos...")
-    
     try:
         while True:
-            time.sleep(300)  # Sleep for 5 minutes, then check again
-            scan_and_upload_existing()
+            time.sleep(10)
     except KeyboardInterrupt:
         observer.stop()
-
     observer.join()
-
-if __name__ == "__main__":
-    print(f"Starting Uploader")
-    scan_and_upload_existing()  # Check for old videos on startup
-    start_folder_watcher()  # Start watching for new videos
