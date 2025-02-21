@@ -46,7 +46,7 @@ def on_message(client, userdata, msg):
     if not is_recording:
         is_recording = True
         timestamp = datetime.now().strftime("%m_%d_%Y_%H-%M-%S")  # Format: mm_dd_yyyy_HH-MM-SS
-        current_video_file = os.path.join(VIDEO_DIR, f"GRD_{timestamp}.mp4")
+        current_video_file = os.path.join(VIDEO_DIR, f"tmp_GRD_{timestamp}.mp4")
         logging.info(f"Starting recording: {current_video_file}")
 
         picam2.set_controls({
@@ -64,7 +64,9 @@ def on_message(client, userdata, msg):
 
         # Start recording
         picam2.start_and_record_video(current_video_file, duration=RECORD_DURATION)
-        
+        # remove tmp_ when video recording is completed
+        os.rename(current_video_file, current_video_file.replace("tmp_", "", 1))
+
         logging.info("Recording complete.")
         is_recording = False
     else:
