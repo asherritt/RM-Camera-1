@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 from picamera2 import Picamera2
 from datetime import datetime, timedelta
 import json
-import threading  # 🚀 Import threading for non-blocking recording
+import threading
 
 # Load environment variables
 load_dotenv()
@@ -21,8 +21,8 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler(LOG_FILE),  # Log to file
-        logging.StreamHandler()  # Log to console
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler()
     ]
 )
 
@@ -32,7 +32,7 @@ class MotionRecorder:
         self.is_recording = False
         self.current_video_file = ""
         self.last_record_time = None
-        self.lock = threading.Lock()  # 🔒 Ensure thread safety
+        self.lock = threading.RLock()  # 🔒 Prevent deadlocks
 
     def start_recording(self):
         """Starts recording a new video in a separate thread."""
@@ -43,33 +43,36 @@ class MotionRecorder:
         self.is_recording = True  # Set recording flag
         
         def record_video():
-            timestamp = datetime.now().strftime("%m_%d_%Y_%H-%M-%S")
-            self.current_video_file = os.path.join(VIDEO_DIR, f"tmp_GRD_{timestamp}.mp4")
+            try:
+                timestamp = datetime.now().strftime("%m_%d_%Y_%H-%M-%S")
+                self.current_video_file = os.path.join(VIDEO_DIR, f"tmp_GRD_{timestamp}.mp4")
 
-            logging.info(f"🎥 Starting recording: {self.current_video_file}")
+                logging.info(f"🎥 Starting recording: {self.current_video_file}")
 
-            # Configure camera
-            self.picam2.set_controls({"FrameRate": 24.0})
-            config = self.picam2.create_video_configuration(main={"size": (2028, 1080)})
-            self.picam2.configure(config)
+                # Configure camera
+                self.picam2.set_controls({"FrameRate": 24.0})
+                config = self.picam2.create_video_configuration(main={"size": (2028, 1080)})
+                self.picam2.configure(config)
 
-            # Start recording (Blocking, but in its own thread)
-            self.picam2.start_and_record_video(self.current_video_file, duration=RECORD_DURATION)
+                # Start recording
+                self.picam2.start_and_record_video(self.current_video_file, duration=RECORD_DURATION)
 
-            # ✅ Rename file after recording
-            final_video_file = self.current_video_file.replace("tmp_", "", 1)
-            os.rename(self.current_video_file, final_video_file)
-            logging.info(f"✅ Recording complete. Saved as: {final_video_file}")
+                # ✅ Rename file after recording
+                final_video_file = self.current_video_file.replace("tmp_", "", 1)
+                os.rename(self.current_video_file, final_video_file)
+                logging.info(f"✅ Recording complete. Saved as: {final_video_file}")
 
-            # Reset recording flag
-            self.is_recording = False
+            except Exception as e:
+                logging.error(f"❌ Recording error: {e}")
+            finally:
+                self.is_recording = False  # Reset recording flag
 
-        # 🚀 Run the recording in a separate thread to keep MQTT listener responsive
+        # 🚀 Run the recording in a separate thread to keep MQTT responsive
         threading.Thread(target=record_video, daemon=True).start()
 
     def on_message(self, client, userdata, msg):
         """Handles MQTT messages and determines whether to start a new recording."""
-        with self.lock:  # 🔒 Ensure thread safety when checking/modifying timestamps
+        with self.lock:  # 🔒 Prevent deadlocks when checking timestamps
             current_timestamp = datetime.now()
             logging.info(f"🚨 Motion detected at {current_timestamp}")
 
@@ -95,6 +98,11 @@ try:
     mqtt_client.connect(BROKER_IP, 1883, 60)
     mqtt_client.subscribe(GARDEN_TOPIC)
     logging.info(f"📡 Subscribed to MQTT topic: {GARDEN_TOPIC} on broker {BROKER_IP}")
-    mqtt_client.loop_forever()
+
+    mqtt_client.loop_start()  # ✅ Run MQTT in the background
 except Exception as e:
     logging.error(f"🚨 Failed to connect to MQTT broker: {e}")
+
+# Keep main thread alive
+while True:
+    time.sleep(1)
