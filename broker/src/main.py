@@ -65,7 +65,7 @@ def on_message(client, userdata, msg):
         # Start recording
         picam2.start_and_record_video(current_video_file, duration=RECORD_DURATION)
         # remove tmp_ when video recording is completed
-        os.rename(current_video_file, current_video_file.replace("tmp_", "", 1))
+        # os.rename(current_video_file, current_video_file.replace("tmp_", "", 1))
 
         logging.info("Recording complete.")
         is_recording = False
