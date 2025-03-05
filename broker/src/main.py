@@ -60,21 +60,24 @@ class MotionRecorder:
 
     def on_message(self, client, userdata, msg):
         """Handles MQTT messages and determines whether to start a new recording."""
+        logging.info(f"📩 Raw MQTT message received: {msg.payload.decode()}")
+
         try:
             payload = json.loads(msg.payload.decode())
             new_timestamp = int(payload.get("timestamp", "0")) / 1000  # Convert from ms to seconds
 
-            logging.info(f"📩 Motion event received with timestamp {new_timestamp}")
+            logging.info(f"📩 Parsed Motion Event with timestamp {new_timestamp}")
 
-            # Ensure the new timestamp is valid and greater than the last timestamp + RECORD_DURATION
+            # Ensure new timestamp is valid and greater than last timestamp + RECORD_DURATION
             if new_timestamp > (self.current_timestamp + RECORD_DURATION):
                 if not self.is_recording:
                     self.start_recording(new_timestamp)
                 self.current_timestamp = new_timestamp  # Update last processed timestamp
             else:
                 logging.info("⚠️ Ignoring event (too soon since last recording).")
-        except (json.JSONDecodeError, ValueError):
-            logging.error("❌ Failed to decode MQTT message. Ignoring.")
+
+        except (json.JSONDecodeError, ValueError) as e:
+            logging.error(f"❌ Failed to decode MQTT message: {e}")
 
 # Initialize motion recorder
 recorder = MotionRecorder()
