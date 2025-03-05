@@ -56,7 +56,10 @@ class MotionRecorder:
             # Start recording (Blocking, but in its own thread)
             self.picam2.start_and_record_video(self.current_video_file, duration=RECORD_DURATION)
 
-            logging.info(f"✅ Recording complete. Saved as: {self.current_video_file}")
+            # ✅ Rename file after recording
+            final_video_file = self.current_video_file.replace("tmp_", "", 1)
+            os.rename(self.current_video_file, final_video_file)
+            logging.info(f"✅ Recording complete. Saved as: {final_video_file}")
 
             # Reset recording flag
             self.is_recording = False
