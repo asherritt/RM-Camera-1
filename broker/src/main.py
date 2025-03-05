@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 import time
 import json
 import logging
