@@ -5,10 +5,6 @@
 #include "config.h"
 
 // WiFi and MQTT Configuration
-// const char* ssid = "Your_SSID";         // Replace with your WiFi SSID
-// const char* password = "Your_PASSWORD"; // Replace with your WiFi password
-// const char* mqtt_server = "192.168.1.100"; // Replace with your MQTT broker's IP
-
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -18,26 +14,21 @@ const char* topic = "motion/garden";
 Adafruit_VL6180X vl = Adafruit_VL6180X();
 
 // Dynamic Baseline Variables
-const uint8_t NUM_BASELINE_READINGS = 5; // Number of readings for baseline calculation
-uint8_t baseline = 0;                     // Baseline value
-uint8_t readings[NUM_BASELINE_READINGS];  // Array to store initial readings
-uint8_t readingCount = 0;                 // Counter for the initial readings
-bool baselineCalculated = false;          // Flag to check if baseline is ready
+const uint8_t NUM_BASELINE_READINGS = 5;
+uint8_t baseline = 0;
+uint8_t readings[NUM_BASELINE_READINGS];
+uint8_t readingCount = 0;
+bool baselineCalculated = false;
 
 // Thresholds
-const uint8_t baselineThreshold = 2;      // Threshold for adjusting baseline
-const uint8_t detectionThreshold = 3;    // Threshold for detecting significant decreases
+const uint8_t baselineThreshold = 2;
+const uint8_t detectionThreshold = 3;
 
 void setup() {
   Serial.begin(115200);
-
-  // Initialize WiFi
   setupWiFi();
-
-  // Initialize MQTT
   client.setServer(mqtt_server, 1883);
 
-  // Initialize the sensor
   Serial.println("Adafruit VL6180x test!");
   if (!vl.begin()) {
     Serial.println("Failed to find sensor");
@@ -47,58 +38,56 @@ void setup() {
 }
 
 void loop() {
-  // Ensure the MQTT client stays connected
   if (!client.connected()) {
     reconnectMQTT();
   }
   client.loop();
 
-  // Read range from the sensor
   uint8_t range = vl.readRange();
   uint8_t status = vl.readRangeStatus();
 
   if (status == VL6180X_ERROR_NONE) {
     if (!baselineCalculated) {
-      // Collect initial readings for baseline calculation
       readings[readingCount++] = range;
-
       if (readingCount >= NUM_BASELINE_READINGS) {
-        // Calculate baseline as the average of the collected readings
-        uint32_t sum = 0; // Use a larger type to prevent overflow
+        uint32_t sum = 0;
         for (uint8_t i = 0; i < NUM_BASELINE_READINGS; i++) {
           sum += readings[i];
         }
         baseline = sum / NUM_BASELINE_READINGS;
-        baselineCalculated = true; // Mark baseline as calculated
+        baselineCalculated = true;
         Serial.print("Initial Baseline Calculated: ");
         Serial.println(baseline);
       }
     } else {
-      // Baseline is ready; detect significant decreases
       Serial.print("Baseline: ");
       Serial.print(baseline);
 
-      // Update the baseline if the range is stable
       if (abs(range - baseline) < baselineThreshold) {
-        baseline = (baseline + range) / 2; // Smoothly adjust the baseline
+        baseline = (baseline + range) / 2;
       }
 
-      // Detect a significant decrease in range (something moving closer)
       if (baseline - range > detectionThreshold) {
         Serial.println(", RAT DETECTED!");
 
-        // Publish motion detection to MQTT
-        String payload = "{\"motion\": true, \"range\": " + String(range) + ", \"location\": \"garden\"}";
+        // **Generate a timestamp for the event**
+        unsigned long currentMillis = millis();  // Get ESP32 uptime in milliseconds
+        char timestamp[20];
+        sprintf(timestamp, "%lu", currentMillis);  // Convert to string
+
+        // **Include the timestamp in the MQTT payload**
+        String payload = "{\"motion\": true, \"range\": " + String(range) +
+                         ", \"location\": \"garden\", \"timestamp\": " + String(timestamp) + "}";
         client.publish(topic, payload.c_str());
       } else {
         Serial.println(", No significant change.");
       }
     }
   } else {
-    handleError(status); // Print error messages for debugging
+    handleError(status);
   }
 
-  delay(100); // Adjust delay as needed
+  delay(100);
 }
 
 void setupWiFi() {
@@ -123,7 +112,6 @@ void setupWiFi() {
 void reconnectMQTT() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
     if (client.connect("ESP32Client")) {
       Serial.println("connected");
     } else {
@@ -136,7 +124,6 @@ void reconnectMQTT() {
 }
 
 void handleError(uint8_t status) {
-  // Print error messages for debugging
   if ((status >= VL6180X_ERROR_SYSERR_1) && (status <= VL6180X_ERROR_SYSERR_5)) {
     Serial.println("System error");
   } else if (status == VL6180X_ERROR_ECEFAIL) {

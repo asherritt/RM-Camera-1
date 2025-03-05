@@ -15,3 +15,5 @@ libcamera-vid -t 0 --width 2028 --height 1080 --framerate 50 --autofocus-mode au
 libcamera-vid -t 0 --width 2028 --height 1080 --framerate 25 --shutter 40000 --gain 8
 
 sudo systemctl restart cron
+
+sudo pkill -f broker/src/main.py
