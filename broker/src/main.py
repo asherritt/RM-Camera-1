@@ -74,6 +74,8 @@ def on_message(client, userdata, msg):
     """Handles MQTT messages and determines whether to start a new recording."""
     global last_record_time
 
+    logging.info(f"Motion detected")
+
     with lock:  # 🔒 Ensure thread safety when checking/modifying timestamps
         current_timestamp = datetime.now()
         logging.info(f"🚨 Motion detected at {current_timestamp}")
