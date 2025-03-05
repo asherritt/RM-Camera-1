@@ -59,17 +59,13 @@ class MotionRecorder:
         current_timestamp = datetime.now()
         logging.info(f"🚨 Motion detected at {current_timestamp}")
            
-        try:
-            if self.last_record_time is None:
-                self.last_record_time = current_timestamp
-                self.start_recording()
-            if (current_timestamp > self.last_record_time + RECORD_DURATION):
-                self.last_record_time = current_timestamp
-                self.start_recording()
-        except (json.JSONDecodeError, ValueError):
-            logging.error("❌ Failed to decode MQTT message. Ignoring.")
-        
-        logging.info(f"last_record_time {self.last_record_time}")
+        if self.last_record_time is None:
+            self.last_record_time = current_timestamp
+            self.start_recording()
+        if (current_timestamp > self.last_record_time + RECORD_DURATION):
+            self.last_record_time = current_timestamp
+            self.start_recording()
+ 
 
 # Initialize motion recorder
 recorder = MotionRecorder()
