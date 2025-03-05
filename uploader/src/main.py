@@ -46,7 +46,7 @@ def upload_video(file_path, retries=3):
 
 class VideoHandler(FileSystemEventHandler):
     """Watch for new videos and upload when they are complete."""
-    def on_created(self, event):
+    def on_modified(self, event):
         if event.is_directory or event.src_path.startswith("tmp_"):
             return  # Ignore directories and temporary files
 
@@ -54,9 +54,9 @@ class VideoHandler(FileSystemEventHandler):
         print(f"📁 New file detected: {file_path}")
 
         # Wait until file is stable before uploading
-        while not is_file_complete(file_path):
-            print(f"⏳ Waiting for {file_path} to finish writing...")
-            time.sleep(5)  # Adjust sleep interval as needed
+        # while not is_file_complete(file_path):
+        #     print(f"⏳ Waiting for {file_path} to finish writing...")
+        #     time.sleep(5)  # Adjust sleep interval as needed
 
         upload_video(file_path)
 
