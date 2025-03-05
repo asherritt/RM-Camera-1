@@ -57,15 +57,15 @@ class MotionRecorder:
         logging.info(f"🚨 Motion detected at {current_timestamp}")
 
         # If this is the first motion event, record immediately
-        if self.last_record_time is None:
-            self.last_record_time = current_timestamp
-            self.start_recording()
-            return
+        # if self.last_record_time is None:
+        #     self.last_record_time = current_timestamp
+        #     self.start_recording()
+        #     return
 
-        # Convert RECORD_DURATION to timedelta
-        if current_timestamp > self.last_record_time + timedelta(seconds=RECORD_DURATION):
-            self.last_record_time = current_timestamp
-            self.start_recording()
+        # # Convert RECORD_DURATION to timedelta
+        # if current_timestamp > self.last_record_time + timedelta(seconds=RECORD_DURATION):
+        #     self.last_record_time = current_timestamp
+        #     self.start_recording()
  
 
 # Initialize motion recorder
