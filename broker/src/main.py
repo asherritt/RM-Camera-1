@@ -4,8 +4,9 @@ import time
 import logging
 import paho.mqtt.client as mqtt
 from picamera2 import Picamera2
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
+
 
 # Load environment variables
 load_dotenv()
@@ -48,21 +49,21 @@ class MotionRecorder:
         # Start recording
         self.picam2.start_and_record_video(self.current_video_file, duration=RECORD_DURATION)
 
-        # Rename file after recording
-        # final_video_file = self.current_video_file.replace("tmp_", "", 1)
-        # os.rename(self.current_video_file, final_video_file)
-
         logging.info(f"✅ Recording complete. Saved as: {self.current_video_file}")
 
     def on_message(self, client, userdata, msg):
         """Handles MQTT messages and determines whether to start a new recording."""
         current_timestamp = datetime.now()
         logging.info(f"🚨 Motion detected at {current_timestamp}")
-           
+
+        # If this is the first motion event, record immediately
         if self.last_record_time is None:
             self.last_record_time = current_timestamp
             self.start_recording()
-        if (current_timestamp > self.last_record_time + RECORD_DURATION):
+            return
+
+        # Convert RECORD_DURATION to timedelta
+        if current_timestamp > self.last_record_time + timedelta(seconds=RECORD_DURATION):
             self.last_record_time = current_timestamp
             self.start_recording()
  
