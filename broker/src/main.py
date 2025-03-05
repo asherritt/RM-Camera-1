@@ -6,6 +6,9 @@ from picamera2 import Picamera2
 from datetime import datetime
 import os
 
+# Load environment variables
+load_dotenv()
+
 BROKER_IP = os.getenv("BROKER_IP")
 GARDEN_TOPIC = "motion/garden"
 LOG_FILE = os.getenv("LOG_FILE")
