@@ -4,6 +4,7 @@ import logging
 import paho.mqtt.client as mqtt
 from picamera2 import Picamera2
 from datetime import datetime
+import os
 
 BROKER_IP = os.getenv("BROKER_IP")
 GARDEN_TOPIC = "motion/garden"
