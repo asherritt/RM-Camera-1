@@ -49,10 +49,10 @@ class MotionRecorder:
         self.picam2.start_and_record_video(self.current_video_file, duration=RECORD_DURATION)
 
         # Rename file after recording
-        final_video_file = self.current_video_file.replace("tmp_", "", 1)
+        # final_video_file = self.current_video_file.replace("tmp_", "", 1)
         # os.rename(self.current_video_file, final_video_file)
 
-        logging.info(f"✅ Recording complete. Saved as: {final_video_file}")
+        logging.info(f"✅ Recording complete. Saved as: {self.current_video_file}")
 
     def on_message(self, client, userdata, msg):
         """Handles MQTT messages and determines whether to start a new recording."""
