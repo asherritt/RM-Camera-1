@@ -1,95 +1,11 @@
 from dotenv import load_dotenv
+import os
 import time
+import logging
+import paho.mqtt.client as mqtt
+from picamera2 import Picamera2
+from datetime import datetime
 import json
-import logging
-import paho.mqtt.client as mqtt
-from picamera2 import Picamera2
-from datetime import datetime
-import os
-
-# Load environment variables
-load_dotenv()
-
-BROKER_IP = os.getenv("BROKER_IP")
-GARDEN_TOPIC = "motion/garden"
-LOG_FILE = os.getenv("LOG_FILE")
-VIDEO_DIR = os.getenv("VIDEO_DIR")
-RECORD_DURATION = int(os.getenv("RECORD_DURATION", "900"))
-POST_RECORD_COOLDOWN = 60  # Prevent immediate duplicate recordings
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-class MotionRecorder:
-    def __init__(self):
-        self.picam2 = Picamera2()
-        self.is_recording = False
-        self.current_video_file = ""
-        self.last_recording_time = 0  # Timestamp of last recording
-
-    def start_recording(self, motion_timestamp):
-        """Starts recording if it's not already in progress and cooldown has passed."""
-        current_time = time.time()
-
-        # Convert motion timestamp from ESP32 uptime (milliseconds) to seconds
-        motion_time_seconds = int(motion_timestamp) / 1000
-
-        # Ignore old/duplicate motion events
-        if motion_time_seconds <= self.last_recording_time:
-            logging.info("⚠️ Ignoring duplicate or old motion event.")
-            return
-
-        # Enforce cooldown between recordings
-        if current_time - self.last_recording_time < POST_RECORD_COOLDOWN:
-            logging.info("⏳ Still in cooldown period. Ignoring motion event.")
-            return
-
-        self.is_recording = True
-        timestamp = datetime.now().strftime("%m_%d_%Y_%H-%M-%S")
-        self.current_video_file = f"{VIDEO_DIR}/tmp_GRD_{timestamp}.mp4"
-
-        logging.info(f"🎥 Starting recording: {self.current_video_file}")
-
-        self.picam2.set_controls({"FrameRate": 24.0})
-        config = self.picam2.create_video_configuration(main={"size": (2028, 1080)})
-        self.picam2.configure(config)
-
-        self.picam2.start_and_record_video(self.current_video_file, duration=RECORD_DURATION)
-
-        final_video_file = self.current_video_file.replace("tmp_", "", 1)
-        os.rename(self.current_video_file, final_video_file)
-
-        logging.info(f"✅ Recording complete. Saved as: {final_video_file}")
-
-        self.last_recording_time = motion_time_seconds  # Store last event time
-        self.is_recording = False
-
-    def on_message(self, client, userdata, msg):
-        """Handles MQTT messages."""
-        payload = json.loads(msg.payload.decode())
-        motion_timestamp = payload.get("timestamp", "0")
-
-        logging.info(f"📩 Motion event received with timestamp {motion_timestamp}")
-        self.start_recording(motion_timestamp)
-
-recorder = MotionRecorder()
-mqtt_client = mqtt.Client()
-mqtt_client.on_message = recorder.on_message
-mqtt_client.connect(BROKER_IP, 1883, 60)
-mqtt_client.subscribe(GARDEN_TOPIC)
-mqtt_client.loop_forever()
-
-
-
-
-from dotenv import load_dotenv
-import os
-import time
-import logging
-import paho.mqtt.client as mqtt
-from picamera2 import Picamera2
-from datetime import datetime
-import json  # Add this at the top
-
 
 # Load environment variables
 load_dotenv()
@@ -100,63 +16,77 @@ LOG_FILE = os.getenv("LOG_FILE")
 VIDEO_DIR = os.getenv("VIDEO_DIR")
 RECORD_DURATION = int(os.getenv("RECORD_DURATION", "900"))  # Default 15 min
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# ✅ Configure logging to both **console** and **file**
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),  # Log to file
+        logging.StreamHandler()  # Log to console
+    ]
+)
 
 class MotionRecorder:
     def __init__(self):
         self.picam2 = Picamera2()
         self.is_recording = False
         self.current_video_file = ""
-        self.last_recording_time = 0  # Timestamp of last recording
+        self.current_timestamp = 0  # Last processed motion event timestamp
 
-    def start_recording(self, motion_timestamp):
-        """Starts recording if it's not already in progress and cooldown has passed."""
-        current_time = time.time()
-
-        # Convert motion timestamp from ESP32 uptime (milliseconds) to seconds
-        motion_time_seconds = int(motion_timestamp) / 1000
-
-        # Ignore old/duplicate motion events
-        if motion_time_seconds <= self.last_recording_time:
-            logging.info("⚠️ Ignoring duplicate or old motion event.")
-            return
-
-        # Enforce cooldown between recordings
-        if current_time - self.last_recording_time < POST_RECORD_COOLDOWN:
-            logging.info("⏳ Still in cooldown period. Ignoring motion event.")
-            return
-
+    def start_recording(self, new_timestamp):
+        """Starts recording if not already recording and timestamp condition is met."""
         self.is_recording = True
         timestamp = datetime.now().strftime("%m_%d_%Y_%H-%M-%S")
-        self.current_video_file = f"{VIDEO_DIR}/tmp_GRD_{timestamp}.mp4"
+        self.current_video_file = os.path.join(VIDEO_DIR, f"tmp_GRD_{timestamp}.mp4")
 
         logging.info(f"🎥 Starting recording: {self.current_video_file}")
 
+        # Configure camera
         self.picam2.set_controls({"FrameRate": 24.0})
         config = self.picam2.create_video_configuration(main={"size": (2028, 1080)})
         self.picam2.configure(config)
 
+        # Start recording
         self.picam2.start_and_record_video(self.current_video_file, duration=RECORD_DURATION)
 
+        # Rename file after recording
         final_video_file = self.current_video_file.replace("tmp_", "", 1)
         os.rename(self.current_video_file, final_video_file)
 
         logging.info(f"✅ Recording complete. Saved as: {final_video_file}")
 
-        self.last_recording_time = motion_time_seconds  # Store last event time
+        # Reset recording flag
         self.is_recording = False
 
     def on_message(self, client, userdata, msg):
-        """Handles MQTT messages."""
-        payload = json.loads(msg.payload.decode())
-        motion_timestamp = payload.get("timestamp", "0")
+        """Handles MQTT messages and determines whether to start a new recording."""
+        try:
+            payload = json.loads(msg.payload.decode())
+            new_timestamp = int(payload.get("timestamp", "0")) / 1000  # Convert from ms to seconds
 
-        logging.info(f"📩 Motion event received with timestamp {motion_timestamp}")
-        self.start_recording(motion_timestamp)
+            logging.info(f"📩 Motion event received with timestamp {new_timestamp}")
 
+            # Ensure the new timestamp is valid and greater than the last timestamp + RECORD_DURATION
+            if new_timestamp > (self.current_timestamp + RECORD_DURATION):
+                if not self.is_recording:
+                    self.start_recording(new_timestamp)
+                self.current_timestamp = new_timestamp  # Update last processed timestamp
+            else:
+                logging.info("⚠️ Ignoring event (too soon since last recording).")
+        except (json.JSONDecodeError, ValueError):
+            logging.error("❌ Failed to decode MQTT message. Ignoring.")
+
+# Initialize motion recorder
 recorder = MotionRecorder()
+
+# Setup MQTT client
 mqtt_client = mqtt.Client()
 mqtt_client.on_message = recorder.on_message
-mqtt_client.connect(BROKER_IP, 1883, 60)
-mqtt_client.subscribe(GARDEN_TOPIC)
-mqtt_client.loop_forever()
+
+try:
+    mqtt_client.connect(BROKER_IP, 1883, 60)
+    mqtt_client.subscribe(GARDEN_TOPIC)
+    logging.info(f"📡 Subscribed to MQTT topic: {GARDEN_TOPIC} on broker {BROKER_IP}")
+    mqtt_client.loop_forever()
+except Exception as e:
+    logging.error(f"🚨 Failed to connect to MQTT broker: {e}")
