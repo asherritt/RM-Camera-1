@@ -47,7 +47,7 @@ class CameraRecorder:
 
     def monitor_commands(self):
         """Continuously check for new recording commands."""
-        logging.info("📡 Camera Recorder started, watching for commands...")
+        logging.info("📡 Watching for commands...")
 
         while True:
             if os.path.exists(COMMAND_FILE):
@@ -58,13 +58,13 @@ class CameraRecorder:
                     os.remove(COMMAND_FILE)  # Remove command file after reading
                     duration = command_data.get("duration", 900)  # Default 15 min
 
-                    logging.info(f"🔹 New recording request: {command_data}")
+                    logging.info(f"🔹 New recording: {command_data}")
                     self.start_recording(duration)
 
                 except Exception as e:
                     logging.error(f"❌ Failed to process command: {e}")
 
-            time.sleep(1)  # Check every second for new commands
+            time.sleep(10)  # Check every second for new commands
 
 # Start the camera recorder process
 recorder = CameraRecorder()
