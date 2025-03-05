@@ -24,8 +24,10 @@ logging.basicConfig(
 class CameraController:
     def __init__(self):
         self.last_record_time = None
+       
 
-    def handle_motion_event(self):
+    def on_message(self, client, userdata, msg):
+        """Handles MQTT messages for motion detection."""
         """Write a command file to trigger the camera recorder."""
         current_timestamp = datetime.now()
         logging.info(f"🚨 Motion detected at {current_timestamp}")
@@ -46,14 +48,6 @@ class CameraController:
 
         logging.info("✅ Recording command written.")
 
-    def on_message(self, client, userdata, msg):
-        """Handles MQTT messages for motion detection."""
-        try:
-            logging.info(f"📩 Received MQTT message: {msg.payload.decode()}")
-            self.handle_motion_event()
-        except (json.JSONDecodeError, ValueError):
-            logging.error("❌ Failed to decode MQTT message.")
-
 # Initialize and start the MQTT listener
 controller = CameraController()
 mqtt_client = mqtt.Client()
@@ -62,7 +56,7 @@ mqtt_client.on_message = controller.on_message
 try:
     mqtt_client.connect(BROKER_IP, 1883, 60)
     mqtt_client.subscribe(GARDEN_TOPIC)
-    logging.info(f"📡 Subscribed to MQTT topic: {GARDEN_TOPIC} on broker {BROKER_IP}")
+    logging.info(f"Subscribed to MQTT topic: {GARDEN_TOPIC} on broker {BROKER_IP}")
     mqtt_client.loop_forever()
 except Exception as e:
     logging.error(f"🚨 Failed to connect to MQTT broker: {e}")
