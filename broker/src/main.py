@@ -31,17 +31,10 @@ class MotionRecorder:
         self.picam2 = Picamera2()
         self.is_recording = False
         self.current_video_file = ""
-        self.current_timestamp = 0  # Last processed motion event timestamp
+        self.last_record_time = None
 
-    def start_recording(self, new_timestamp):
-        """Starts recording if not already recording and timestamp condition is met."""
-        logging.info(f"🔍 Checking recording conditions: new_timestamp={new_timestamp}, current_timestamp={self.current_timestamp}, RECORD_DURATION={RECORD_DURATION}")
-
-        if self.is_recording:
-            logging.info("🚫 Already recording. Ignoring new motion event.")
-            return
-
-        self.is_recording = True
+    def start_recording(self):
+        """Start recording a new video."""
         timestamp = datetime.now().strftime("%m_%d_%Y_%H-%M-%S")
         self.current_video_file = os.path.join(VIDEO_DIR, f"tmp_GRD_{timestamp}.mp4")
 
@@ -57,31 +50,26 @@ class MotionRecorder:
 
         # Rename file after recording
         final_video_file = self.current_video_file.replace("tmp_", "", 1)
-        os.rename(self.current_video_file, final_video_file)
+        # os.rename(self.current_video_file, final_video_file)
 
         logging.info(f"✅ Recording complete. Saved as: {final_video_file}")
 
-        # Reset timestamp & recording flag
-        self.current_timestamp = new_timestamp
-        self.is_recording = False
-        logging.info(f"⏲️ Updated last recording timestamp: {self.current_timestamp}")
-
     def on_message(self, client, userdata, msg):
         """Handles MQTT messages and determines whether to start a new recording."""
+        current_timestamp = datetime.now()
+        logging.info(f"🚨 Motion detected at {current_timestamp}")
+           
         try:
-            payload = json.loads(msg.payload.decode())
-            new_timestamp = int(payload.get("timestamp", "0")) / 1000  # Convert from ms to seconds
-
-            logging.info(f"📩 Motion event received with timestamp {new_timestamp}")
-
-            # Ensure the new timestamp is valid and greater than the last timestamp + RECORD_DURATION
-            if new_timestamp > (self.current_timestamp + RECORD_DURATION):
-                logging.info("✅ New motion event meets recording conditions.")
-                self.start_recording(new_timestamp)
-            else:
-                logging.info(f"⚠️ Ignoring event (too soon). Last recorded at {self.current_timestamp}, event at {new_timestamp}.")
+            if self.last_record_time is None:
+                self.last_record_time = current_timestamp
+                self.start_recording()
+            if (current_timestamp > self.last_record_time + RECORD_DURATION):
+                self.last_record_time = current_timestamp
+                self.start_recording()
         except (json.JSONDecodeError, ValueError):
             logging.error("❌ Failed to decode MQTT message. Ignoring.")
+        
+        logging.info(f"last_record_time {self.last_record_time}")
 
 # Initialize motion recorder
 recorder = MotionRecorder()
