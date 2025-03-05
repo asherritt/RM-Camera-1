@@ -4,7 +4,7 @@ import logging
 import paho.mqtt.client as mqtt
 from picamera2 import Picamera2
 from datetime import datetime, timedelta
-import json
+import time
 import threading
 
 # Load environment variables
