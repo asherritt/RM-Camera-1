@@ -57,7 +57,7 @@ def upload_video(file_path, retries=3):
 class VideoHandler(FileSystemEventHandler):
     """Watch for new videos and upload when they are complete."""
     def on_modified(self, event):
-        if event.is_directory or event.src_path.startswith("tmp_"):
+        if event.is_directory or os.path.basename(event.src_path).startswith("tmp_"):
             return  # Ignore directories and temporary files
 
         file_path = event.src_path
