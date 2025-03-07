@@ -16,4 +16,4 @@ libcamera-vid -t 0 --width 2028 --height 1080 --framerate 25 --shutter 40000 --g
 
 sudo systemctl restart cron
 
-sudo pkill -f broker/src/main.py
+sudo pkill -f broker/src/main.py    

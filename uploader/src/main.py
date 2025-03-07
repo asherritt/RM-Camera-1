@@ -47,12 +47,25 @@ def upload_video(file_path, retries=3):
             logging.info(f"✅ Upload complete: {file_name}")
             os.remove(file_path)  # Delete after successful upload
             logging.info(f"🗑️ Deleted local file: {file_name}")
+            
+            # 🛠 **NEW:** Scan again after upload
+            scan_and_upload_pending_videos()
+
             return
         except botocore.exceptions.BotoCoreError as e:
             logging.info(f"❌ Upload failed for {file_name} (attempt {attempt+1}/{retries}): {e}")
             time.sleep(5)  # Wait before retrying
 
     logging.info(f"⚠️ Upload permanently failed after {retries} attempts: {file_name}")
+
+def scan_and_upload_pending_videos():
+    """Check for any unprocessed videos and upload them."""
+    logging.info("🔍 Scanning for remaining videos to upload...")
+    for file in os.listdir(VIDEO_DIR):
+        file_path = os.path.join(VIDEO_DIR, file)
+        if file.endswith(".mp4") and not file.startswith("tmp_"):
+            logging.info(f"📁 Found pending file: {file_path}")
+            upload_video(file_path)  # 🚀 Upload next available file
 
 class VideoHandler(FileSystemEventHandler):
     """Watch for new videos and upload when they are complete."""
@@ -65,16 +78,14 @@ class VideoHandler(FileSystemEventHandler):
 
         # Wait until file is stable before uploading
         while not is_file_complete(file_path):
-            print(f"⏳ Waiting for {file_path} to finish writing...")
+            logging.info(f"⏳ Waiting for {file_path} to finish writing...")
             time.sleep(10)  # Adjust sleep interval as needed
 
         upload_video(file_path)
 
 if __name__ == "__main__":
-    logging.info("🔍 Scanning for existing videos...")
-    for file in os.listdir(VIDEO_DIR):
-        if file.endswith(".mp4") and not file.startswith("tmp_"):
-            upload_video(os.path.join(VIDEO_DIR, file))
+    logging.info("🔍 Initial scan for existing videos...")
+    scan_and_upload_pending_videos()
 
     logging.info(f"👀 Watching {VIDEO_DIR} for new videos...")
     event_handler = VideoHandler()
