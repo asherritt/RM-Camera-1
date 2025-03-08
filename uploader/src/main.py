@@ -44,8 +44,8 @@ def upload_video(file_path, retries=3):
 
     for attempt in range(retries):
         try:
-            s3_client.upload_file(file_path, f"{BUCKET_NAME}{PREFIX}", file_name)
-            logging.info(f"✅ Upload complete: {file_name}")
+            s3_client.upload_file(file_path, BUCKET_NAME, f"{PREFIX}{file_name}")
+            logging.info(f"Uploaded {file_name} to s3://{BUCKET_NAME}/{PREFIX}{file_name}")
             os.remove(file_path)  # Delete after successful upload
             logging.info(f"🗑️ Deleted local file: {file_name}")
             
