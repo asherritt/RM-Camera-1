@@ -20,7 +20,7 @@ logging.basicConfig(
 
 VIDEO_DIR = os.getenv("VIDEO_DIR")
 BUCKET_NAME = os.getenv("BUCKET")
-PREFIX = "/raw_videos/garden/"
+PREFIX = "raw_videos/garden/"
 
 s3_client = boto3.client("s3")
 
