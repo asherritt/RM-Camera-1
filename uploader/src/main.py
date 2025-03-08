@@ -20,6 +20,7 @@ logging.basicConfig(
 
 VIDEO_DIR = os.getenv("VIDEO_DIR")
 BUCKET_NAME = os.getenv("BUCKET")
+PREFIX = "/raw_videos/garden/"
 
 s3_client = boto3.client("s3")
 
@@ -43,7 +44,7 @@ def upload_video(file_path, retries=3):
 
     for attempt in range(retries):
         try:
-            s3_client.upload_file(file_path, BUCKET_NAME, file_name)
+            s3_client.upload_file(file_path, f"{BUCKET_NAME}{PREFIX}", file_name)
             logging.info(f"✅ Upload complete: {file_name}")
             os.remove(file_path)  # Delete after successful upload
             logging.info(f"🗑️ Deleted local file: {file_name}")
